@@ -1,0 +1,39 @@
+# ------------------------------
+# Java / Maven / Gradle
+# ------------------------------
+target/
+*.class
+*.jar
+*.war
+.classpath
+.project
+.settings/
+
+# IntelliJ / IDEs
+.idea/
+*.iml
+.vscode/
+
+# ------------------------------
+# Spring Boot (never commit secrets)
+# ------------------------------
+application-local.properties
+application-secret.properties
+
+# ------------------------------
+# React / Node
+# ------------------------------
+node_modules/
+build/
+dist/
+.env
+.env.local
+
+# ------------------------------
+# General
+# ------------------------------
+.DS_Store
+Thumbs.db
+*.log
+logs/
+
