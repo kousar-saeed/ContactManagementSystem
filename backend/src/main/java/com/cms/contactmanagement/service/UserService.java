@@ -8,5 +8,6 @@ public interface UserService {
     UserRegistrationResponseDto registerUser(UserRegistrationRequestDto request);
     User findByEmail(String email);
     User findById(Long id);
+    void changePassword(String email, String oldPassword, String newPassword);
 }
 

@@ -2,10 +2,12 @@ package com.cms.contactmanagement.controller;
 
 import com.cms.contactmanagement.config.JwtUtil;
 import com.cms.contactmanagement.dto.AuthResponseDto;
+import com.cms.contactmanagement.dto.ChangePasswordRequestDto;
 import com.cms.contactmanagement.dto.LoginRequestDto;
 import com.cms.contactmanagement.dto.UserRegistrationRequestDto;
 import com.cms.contactmanagement.dto.UserRegistrationResponseDto;
 import com.cms.contactmanagement.entity.User;
+import com.cms.contactmanagement.exception.InvalidCredentialsException;
 import com.cms.contactmanagement.exception.ValidationException;
 import com.cms.contactmanagement.service.UserService;
 import jakarta.validation.Valid;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -45,7 +48,7 @@ public class AuthController {
             User user = userService.findByEmail(request.getEmail());
             if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 log.error("Auth login failed (invalid credentials): email={}", request.getEmail());
-                throw new ValidationException("Invalid credentials");
+                throw new InvalidCredentialsException("Invalid credentials");
             }
 
             String token = jwtUtil.generateToken(user.getEmail());
@@ -68,6 +71,23 @@ public class AuthController {
             log.error("Auth login exception: email={}", request.getEmail(), ex);
             throw ex;
         }
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequestDto request
+    ) {
+        String email = authentication != null ? String.valueOf(authentication.getPrincipal()) : null;
+        if (email == null || email.isBlank()) {
+            log.error("Change password failed (missing principal)");
+            throw new ValidationException("Unauthorized");
+        }
+
+        log.info("Auth change-password attempt: email={}", email);
+        userService.changePassword(email, request.getOldPassword(), request.getNewPassword());
+        log.info("Auth change-password success: email={}", email);
+        return ResponseEntity.noContent().build();
     }
 }
 

@@ -87,5 +87,28 @@ public class UserServiceImpl implements UserService {
             throw ex;
         }
     }
+
+    @Override
+    @Transactional
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        try {
+            log.info("Changing password: email={}", email);
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new UserNotFoundException("User not found for email=" + email));
+
+            if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+                log.error("Change password failed (old password mismatch): email={}", email);
+                throw new ValidationException("Old password is incorrect");
+            }
+
+            user.setPasswordHash(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            log.info("Password changed successfully: userId={}, email={}", user.getId(), user.getEmail());
+        } catch (RuntimeException ex) {
+            log.error("Error changing password: email={}", email, ex);
+            throw ex;
+        }
+    }
 }
 
