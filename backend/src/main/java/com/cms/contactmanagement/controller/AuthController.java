@@ -7,6 +7,7 @@ import com.cms.contactmanagement.dto.LoginRequestDto;
 import com.cms.contactmanagement.dto.UserRegistrationRequestDto;
 import com.cms.contactmanagement.dto.UserRegistrationResponseDto;
 import com.cms.contactmanagement.entity.User;
+import com.cms.contactmanagement.exception.InvalidCredentialsException;
 import com.cms.contactmanagement.exception.ValidationException;
 import com.cms.contactmanagement.service.UserService;
 import jakarta.validation.Valid;
@@ -47,7 +48,7 @@ public class AuthController {
             User user = userService.findByEmail(request.getEmail());
             if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
                 log.error("Auth login failed (invalid credentials): email={}", request.getEmail());
-                throw new ValidationException("Invalid credentials");
+                throw new InvalidCredentialsException("Invalid credentials");
             }
 
             String token = jwtUtil.generateToken(user.getEmail());
