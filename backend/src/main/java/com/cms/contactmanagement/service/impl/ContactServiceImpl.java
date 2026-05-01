@@ -3,6 +3,7 @@ package com.cms.contactmanagement.service.impl;
 import com.cms.contactmanagement.entity.Contact;
 import com.cms.contactmanagement.entity.User;
 import com.cms.contactmanagement.exception.ContactNotFoundException;
+import com.cms.contactmanagement.exception.OwnershipViolationException;
 import com.cms.contactmanagement.exception.UserNotFoundException;
 import com.cms.contactmanagement.repository.ContactRepository;
 import com.cms.contactmanagement.repository.UserRepository;
@@ -45,9 +46,7 @@ public class ContactServiceImpl implements ContactService {
         Long userId = currentUserId();
         log.info("Fetching contact: contactId={}, userId={}", contactId, userId);
 
-        return contactRepository.findById(contactId)
-                .filter(c -> userId.equals(c.getUserId()))
-                .orElseThrow(() -> new ContactNotFoundException("Contact not found"));
+        return getOwnedContactOrThrow(contactId, userId);
     }
 
     @Override
@@ -70,18 +69,34 @@ public class ContactServiceImpl implements ContactService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<Contact> searchContacts(String term, Pageable pageable) {
+        Long userId = currentUserId();
+        String t = normalizeBlankToNull(term);
+        log.info("Searching contacts by term: userId={}, term='{}', page={}, size={}",
+                userId, t, pageable.getPageNumber(), pageable.getPageSize());
+        return contactRepository.searchByUserIdAndTerm(userId, t, pageable);
+    }
+
+    @Override
     @Transactional
     public Contact updateContact(Long contactId, Contact updated) {
         Long userId = currentUserId();
         log.info("Updating contact: contactId={}, userId={}", contactId, userId);
 
-        Contact existing = contactRepository.findById(contactId)
-                .filter(c -> userId.equals(c.getUserId()))
-                .orElseThrow(() -> new ContactNotFoundException("Contact not found"));
+        Contact existing = getOwnedContactOrThrow(contactId, userId);
 
         existing.setFirstName(updated.getFirstName());
         existing.setLastName(updated.getLastName());
         existing.setTitle(updated.getTitle());
+
+        existing.getEmailAddresses().clear();
+        existing.getEmailAddresses().addAll(updated.getEmailAddresses());
+        existing.getEmailAddresses().forEach(e -> e.setContact(existing));
+
+        existing.getPhoneNumbers().clear();
+        existing.getPhoneNumbers().addAll(updated.getPhoneNumbers());
+        existing.getPhoneNumbers().forEach(p -> p.setContact(existing));
 
         Contact saved = contactRepository.save(existing);
         log.info("Contact updated: contactId={}, userId={}", saved.getId(), userId);
@@ -94,12 +109,23 @@ public class ContactServiceImpl implements ContactService {
         Long userId = currentUserId();
         log.info("Deleting contact: contactId={}, userId={}", contactId, userId);
 
-        Contact existing = contactRepository.findById(contactId)
-                .filter(c -> userId.equals(c.getUserId()))
-                .orElseThrow(() -> new ContactNotFoundException("Contact not found"));
+        Contact existing = getOwnedContactOrThrow(contactId, userId);
 
         contactRepository.delete(existing);
         log.info("Contact deleted: contactId={}, userId={}", contactId, userId);
+    }
+
+    private Contact getOwnedContactOrThrow(Long contactId, Long userId) {
+        Contact contact = contactRepository.findById(contactId)
+                .orElseThrow(() -> new ContactNotFoundException("Contact not found"));
+
+        if (!userId.equals(contact.getUserId())) {
+            log.error("Ownership violation: contactId={}, ownerUserId={}, currentUserId={}",
+                    contactId, contact.getUserId(), userId);
+            throw new OwnershipViolationException("You do not have access to this contact");
+        }
+
+        return contact;
     }
 
     private Long currentUserId() {

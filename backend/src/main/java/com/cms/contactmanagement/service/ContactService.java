@@ -9,6 +9,7 @@ public interface ContactService {
     Contact getContactById(Long contactId);
     Page<Contact> getAllContacts(Pageable pageable);
     Page<Contact> searchContacts(String firstName, String lastName, Pageable pageable);
+    Page<Contact> searchContacts(String term, Pageable pageable);
     Contact updateContact(Long contactId, Contact updated);
     void deleteContact(Long contactId);
 }

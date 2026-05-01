@@ -27,13 +27,13 @@ public class PhoneNumber {
 
     /**
      * Convenience FK field to satisfy `contactId` requirement.
-     * Relationship uses the same `contact_id` column (read-only mapping here).
+     * Populated from the relationship; keep read-only to avoid dual writes.
      */
-    @Column(name = "contact_id", nullable = false)
+    @Column(name = "contact_id", nullable = false, insertable = false, updatable = false)
     private Long contactId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "contact_id", insertable = false, updatable = false)
+    @JoinColumn(name = "contact_id", nullable = false)
     private Contact contact;
 
     private String number;

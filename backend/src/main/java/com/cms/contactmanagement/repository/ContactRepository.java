@@ -25,5 +25,21 @@ public interface ContactRepository extends JpaRepository<Contact, Long> {
             @Param("lastName") String lastName,
             Pageable pageable
     );
+
+    @Query("""
+            select c
+            from Contact c
+            where c.userId = :userId
+              and (
+                    :term is null
+                    or lower(c.firstName) like lower(concat('%', :term, '%'))
+                    or lower(c.lastName) like lower(concat('%', :term, '%'))
+                  )
+            """)
+    Page<Contact> searchByUserIdAndTerm(
+            @Param("userId") Long userId,
+            @Param("term") String term,
+            Pageable pageable
+    );
 }
 
