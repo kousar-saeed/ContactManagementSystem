@@ -2,6 +2,7 @@ package com.cms.contactmanagement.controller;
 
 import com.cms.contactmanagement.config.JwtUtil;
 import com.cms.contactmanagement.dto.AuthResponseDto;
+import com.cms.contactmanagement.dto.ChangePasswordRequestDto;
 import com.cms.contactmanagement.dto.LoginRequestDto;
 import com.cms.contactmanagement.dto.UserRegistrationRequestDto;
 import com.cms.contactmanagement.dto.UserRegistrationResponseDto;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,6 +70,23 @@ public class AuthController {
             log.error("Auth login exception: email={}", request.getEmail(), ex);
             throw ex;
         }
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequestDto request
+    ) {
+        String email = authentication != null ? String.valueOf(authentication.getPrincipal()) : null;
+        if (email == null || email.isBlank()) {
+            log.error("Change password failed (missing principal)");
+            throw new ValidationException("Unauthorized");
+        }
+
+        log.info("Auth change-password attempt: email={}", email);
+        userService.changePassword(email, request.getOldPassword(), request.getNewPassword());
+        log.info("Auth change-password success: email={}", email);
+        return ResponseEntity.noContent().build();
     }
 }
 
