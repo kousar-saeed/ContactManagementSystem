@@ -1,5 +1,4 @@
-
-# Contact Management System (Skeleton)
+# Contact Management System 
 
 This repository contains a **project skeleton** for a Contact Management System:
 
